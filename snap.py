@@ -30,7 +30,7 @@ def send_screenshot():
     with open(file_path, "rb") as photo:
         requests.post(url, data={"chat_id": CHAT_ID}, files={"photo": photo})
 
-    # delete snaps that are older than 20 minutes
+    # delete copy of snaps after 20 minutes
 def cleanup_screenshots():
     """Delete screenshots that are older than 20 minutes (1200 seconds)"""
     current_time = int(time.time())
@@ -42,12 +42,19 @@ def cleanup_screenshots():
                 os.remove(file_path)
                 to_delete.append(file_path)
                 print(f"Deleted old screenshot: {file_path}")
+            except FileNotFoundError:
+                # File was already deleted, just remove from tracking
+                to_delete.append(file_path)
+                print(f"Screenshot {file_path} was already deleted")
             except OSError as e:
                 print(f"Error deleting {file_path}: {e}")
 
-    # Remove snap from tracking dictionary
+    # Remove from tracking dictionary
     for file_path in to_delete:
         del screenshots[file_path]
+
+    # Schedule next cleanup in 60 seconds
+    threading.Timer(60, cleanup_screenshots).start()
 
     # Schedule next cleanup in 1 minute
     threading.Timer(60, cleanup_screenshots).start()
